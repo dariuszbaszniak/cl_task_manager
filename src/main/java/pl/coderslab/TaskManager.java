@@ -1,16 +1,16 @@
 package pl.coderslab;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.IOException;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
+import java.util.Arrays;
+import java.util.InputMismatchException;
+import java.util.Scanner;
 
 public class TaskManager {
     public static void main(String[] args) {
-
-        System.out.println(ConsoleColors.BLUE + "Hello - Start");
 
         String fileName = "tasks.csv";
         checkIfFileExists(fileName);
@@ -20,8 +20,33 @@ public class TaskManager {
             int rows = countRowsInFile(fileName);
             int cols = countColumnsInFile(fileName);
             String[][] tasksTable = createTable(rows, cols);
-            tasksTable = insertTasksToTable(fileName, tasksTable);
-            viewTask(tasksTable);
+            tasksTable = insertTasksToTableFromFile(fileName, tasksTable);
+            listMenu();
+            Scanner scanner = new Scanner(System.in);
+            String operation = scanner.next();
+
+            while (!operation.equals("")) {
+                switch (operation) {
+                    case "add":
+                        tasksTable = addTask(tasksTable, cols);
+                        listMenu();
+                        break;
+                    case "remove":
+                        tasksTable = removeTask(tasksTable);
+                        listMenu();
+                        break;
+                    case "list":
+                        viewTask(tasksTable);
+                        listMenu();
+                        break;
+                    case "exit":
+                        exit(fileName, tasksTable);
+                        return;
+                    default:
+                        System.out.println("Please select a correct option.");
+                }
+                operation = scanner.next();
+            }
 
         } else {
             System.out.println("File " + fileName + " not exists");
@@ -70,7 +95,7 @@ public class TaskManager {
         return table;
     }
 
-    public static String[][] insertTasksToTable(String fileName, String[][] table) {
+    public static String[][] insertTasksToTableFromFile(String fileName, String[][] table) {
 
         String[][] returnTable = table;
         String line = "";
@@ -99,10 +124,123 @@ public class TaskManager {
     public static void viewTask(String[][] tableName) {
 
         for (int i = 0; i < tableName.length; i++) {
+            System.out.print(ConsoleColors.WHITE + i + " : ");
             for (int j = 0; j < tableName[i].length; j++) {
-                System.out.print(tableName[i][j]+"\t");
+                System.out.print(ConsoleColors.WHITE + tableName[i][j] + "\t");
             }
             System.out.println();
         }
+    }
+
+    public static void listMenu() {
+        System.out.println();
+        System.out.println(ConsoleColors.BLUE + "Pleas select an option");
+        System.out.println(ConsoleColors.WHITE + "add");
+        System.out.println(ConsoleColors.WHITE + "remove");
+        System.out.println(ConsoleColors.WHITE + "list");
+        System.out.println(ConsoleColors.WHITE + "exit");
+    }
+
+    public static void exit(String fileName, String[][] tasksTable) {
+
+        //clear file
+        try (PrintWriter writer = new PrintWriter(fileName)) {
+            writer.write("");
+            writer.close();
+        } catch (IOException e) {
+            System.out.println(e.getMessage());
+        }
+
+        Path newFile = Paths.get(fileName);
+        String stringLine = "";
+
+        for (int i = 0; i < tasksTable.length; i++) {
+            for (int j = 0; j < tasksTable[i].length; j++) {
+                if (j == tasksTable[i].length - 1) {
+                    stringLine = stringLine + tasksTable[i][j];
+                } else {
+                    stringLine = stringLine + tasksTable[i][j] + ", ";
+                }
+            }
+            try {
+                // write stringLine to file
+                Files.writeString(newFile, stringLine + "\n", StandardOpenOption.APPEND);
+            } catch (IOException e) {
+                System.out.println(e.getMessage());
+            }
+            stringLine = "";
+        }
+
+        System.out.println(ConsoleColors.RED + "Bye, bye.");
+    }
+
+    public static String[][] addTask(String[][] tasksTable, int cols) {
+
+        Scanner scanner = new Scanner(System.in);
+        System.out.println(ConsoleColors.WHITE + "Please add task description");
+        String description = scanner.nextLine();
+        System.out.println(ConsoleColors.WHITE + "Please add task due date");
+        String date = scanner.nextLine();
+        System.out.println(ConsoleColors.WHITE + "Is your task is important: true/false");
+        String important = scanner.nextLine();
+
+        tasksTable = Arrays.copyOf(tasksTable, tasksTable.length + 1);
+        tasksTable[tasksTable.length - 1] = new String[cols];
+
+        tasksTable[tasksTable.length - 1][0] = description;
+        tasksTable[tasksTable.length - 1][1] = date;
+        tasksTable[tasksTable.length - 1][2] = important;
+
+        return tasksTable;
+    }
+
+    public static String[][] removeTask(String[][] tasksTable) {
+
+        Scanner scanner = new Scanner(System.in);
+        System.out.println("Please select number to remove");
+
+        //check if digt is int
+        while (!scanner.hasNextInt()) {
+            scanner.next();
+            System.out.println(ConsoleColors.RED + "Incorrect argument passed. Please give number greater or equal 0");
+        }
+
+        int removeLine = scanner.nextInt();
+        System.out.println("tab =" + tasksTable.length);
+
+        //check if digt is in table range
+        while (removeLine > tasksTable.length - 1 || removeLine < 0) {
+            System.out.println(ConsoleColors.RED + "Incorrect argument passed. Please give number greater or equal 0");
+            removeLine = scanner.nextInt();
+        }
+
+        System.out.println(removeLine);
+
+        String[][] tasksTableCopy = new String[tasksTable.length - 1][tasksTable[0].length];
+
+        int count = 0;
+
+        // if removeLine is last rows
+        if (removeLine == tasksTable.length - 1) {
+            for (int i = 0; i < tasksTable.length; i++) {
+                for (int j = 0; j < tasksTable[0].length; j++) {
+                    if (i != removeLine)
+                        tasksTableCopy[i][j] = tasksTable[i][j];
+                }
+            }
+        // if removeLine isn't last rows
+        } else {
+            for (int i = 0; i < tasksTable.length; i++) {
+                for (int j = 0; j < tasksTable[0].length; j++) {
+                    if (removeLine == i)
+                        i++;
+                    tasksTableCopy[count][j] = tasksTable[i][j];
+                }
+                count++;
+            }
+        }
+        System.out.println(ConsoleColors.RED + "Value was successfully deleted");
+
+        return tasksTableCopy;
     }
 }
