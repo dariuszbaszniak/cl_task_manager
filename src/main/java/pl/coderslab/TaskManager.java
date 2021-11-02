@@ -1,12 +1,15 @@
 package pl.coderslab;
 
+import org.apache.commons.lang3.ArrayUtils;
+
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.Arrays;
-import java.util.InputMismatchException;
 import java.util.Scanner;
 
 public class TaskManager {
@@ -179,10 +182,27 @@ public class TaskManager {
         Scanner scanner = new Scanner(System.in);
         System.out.println(ConsoleColors.WHITE + "Please add task description");
         String description = scanner.nextLine();
-        System.out.println(ConsoleColors.WHITE + "Please add task due date");
+
+        System.out.println(ConsoleColors.WHITE + "Please add task due date [format YYYY-MM-DD]");
         String date = scanner.nextLine();
+
+        boolean checkDate = validDate(date);
+        while (checkDate != true) {
+            System.out.println(ConsoleColors.RED + "Incorrect argument passed. Please give format YYYY-MM-DD");
+            date = scanner.nextLine();
+            checkDate = validDate(date);
+
+        }
+
         System.out.println(ConsoleColors.WHITE + "Is your task is important: true/false");
         String important = scanner.nextLine();
+        important = important.toLowerCase();
+        //check important condition
+        while (!important.toLowerCase().equals("true") && !important.toLowerCase().equals("false")) {
+            System.out.println(ConsoleColors.RED + "Incorrect argument passed. Please give true or false");
+            important = scanner.next();
+            important = important.toLowerCase();
+        }
 
         tasksTable = Arrays.copyOf(tasksTable, tasksTable.length + 1);
         tasksTable[tasksTable.length - 1] = new String[cols];
@@ -201,12 +221,11 @@ public class TaskManager {
 
         //check if digt is int
         while (!scanner.hasNextInt()) {
-            scanner.next();
             System.out.println(ConsoleColors.RED + "Incorrect argument passed. Please give number greater or equal 0");
+            scanner.next();
         }
 
         int removeLine = scanner.nextInt();
-        System.out.println("tab =" + tasksTable.length);
 
         //check if digt is in table range
         while (removeLine > tasksTable.length - 1 || removeLine < 0) {
@@ -228,7 +247,7 @@ public class TaskManager {
                         tasksTableCopy[i][j] = tasksTable[i][j];
                 }
             }
-        // if removeLine isn't last rows
+            // if removeLine isn't last rows
         } else {
             for (int i = 0; i < tasksTable.length; i++) {
                 for (int j = 0; j < tasksTable[0].length; j++) {
@@ -242,5 +261,19 @@ public class TaskManager {
         System.out.println(ConsoleColors.RED + "Value was successfully deleted");
 
         return tasksTableCopy;
+    }
+
+    public static boolean validDate(String dateValid) {
+
+        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
+        format.setLenient(false);
+        String date = dateValid;
+
+        try {
+            format.parse(date);
+            return true;
+        } catch (ParseException e) {
+            return false;
+        }
     }
 }
